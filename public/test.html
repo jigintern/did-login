@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API TEST</title>
+</head>
+
+<body>
+    <div>
+        <h1>GET</h1>
+        <button id="get-button">Request</button>
+        <p id="get-resp"></p>
+    </div>
+    <div>
+        <h1>GET(JSON引数)</h1>
+        <input type="text" name="get-test-word" id="get-test-word">
+        <button id="get-json-button">Request</button>
+        <p id="get-json-resp"></p>
+    </div>
+    <div>
+        <h1>POST</h1>
+        <input type="text" name="post-test-word" id="post-test-word">
+        <button id="post-button">Request</button>
+        <p id="post-json-resp"></p>
+    </div>
+
+    <script type="module">
+        const getButton = document.getElementById("get-button");
+        getButton.addEventListener("click", async () => {
+            const resp = await fetch("/test-get");
+            document.querySelector("#get-resp").innerText = await resp.text();
+        });
+
+        const getJsonButton = document.getElementById("get-json-button");
+        getJsonButton.addEventListener("click", async () => {
+            const testWord = document.getElementById("get-test-word").value;
+            const resp = await fetch(`/test-get-json?testword=${testWord}`);
+            document.querySelector("#get-json-resp").innerText = await resp.text();
+        });
+
+        const postJsonButton = document.getElementById("post-button");
+        postJsonButton.addEventListener("click", async () => {
+            const testWord = document.getElementById("post-test-word").value;
+            const resp = await fetch("/test-post", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ testWord }),
+            });
+            document.querySelector("#post-json-resp").innerText = await resp.text();
+        });
+
+    </script>
+</body>
+
+</html>

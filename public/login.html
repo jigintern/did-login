@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DID Login Sample</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+</head>
+
+<body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title has-text-centered">DID Login Sample</h1>
+      <h3 class="subtitle has-text-centered">ログイン</h3>
+      <form id="loginForm">
+
+        <div class="container mb-4">
+          <p id="error" class="has-text-danger"></p>
+        </div>
+
+        <div class="container mb-4">
+          <h3 id="status" class="has-text-info"></h3>
+          <p id="did" class="has-text-black"></p>
+          <p id="password" class="has-text-black"></p>
+        </div>
+
+        <div class="field">
+          <label class="label">PEMファイル</label>
+          <div class="control">
+            <input class="input" type="file" id="pemFile" accept=".pem">
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="control">
+            <button class="button is-link">ログイン</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <script type="module">
+    import Ed25519 from "https://taisukef.github.io/forge-es/lib/ed25519.js";
+    import { DIDKey } from "https://code4fukui.github.io/Ed25519/DIDKey.js";
+    import { PEMFile } from "https://code4fukui.github.io/Ed25519/PEMFile.js";
+    import { Text } from "https://code4fukui.github.io/Ed25519/Text.js";
+
+    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      // pemファイルの取得
+      const pemFile = document.getElementById('pemFile').files[0];
+      if (!pemFile) {
+        document.getElementById('error').innerText = 'ファイルを選択してください。';
+      }
+
+      // 公開鍵・秘密鍵を取り出す
+      const fileTxt = await pemFile.text();
+      const keys = PEMFile.decode(fileTxt);
+
+      // 公開鍵と秘密鍵の検証
+      const publicKeyFromPrivateKey = Ed25519.publicKeyFromPrivateKey({ privateKey: keys.privateKey });
+      if (!equalsBin(publicKeyFromPrivateKey, keys.publicKey)) {
+        document.getElementById('error').innerText = 'このファイルは正しくありません。';
+      }
+
+      // サーバーにユーザー情報を問い合わせる
+      const message = '{api: /users/login}';
+      const encodedMsg = Text.encode(message);
+      const messageSig = Ed25519.sign({ privateKey: keys.privateKey, message: encodedMsg, encoding: "binary" });
+      const sign = DIDKey.encode(keys.publicKey) + '-' + DIDKey.encodeSign(messageSig);
+
+      // 公開鍵・電子署名をサーバーに渡す
+      try {
+        const resp = await fetch("/users/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            did: DIDKey.encodePublicKey(keys.publicKey),
+            sign,
+            message,
+          }),
+        });
+
+        // サーバーから成功ステータスが返ってこないときの処理
+        if (!resp.ok) {
+          const errMsg = await resp.text();
+          document.getElementById('error').innerText = 'エラー：' + errMsg;
+        }
+
+        // レスポンスが正常ならローカルストレージに保存
+        const json =await resp.json();
+        const did = DIDKey.encodePublicKey(keys.publicKey);
+        const password = DIDKey.encodePrivateKey(keys.privateKey);
+        localStorage.setItem('did', did);
+        localStorage.setItem('password', password);
+        localStorage.setItem('name', json.user.name);
+        
+        document.getElementById('status').innerText = 'ログイン成功';
+        document.getElementById('did').innerText = did;
+        document.getElementById('password').innerText = password;
+      } catch (err) {
+        document.getElementById('error').innerText = err.message;
+      }
+
+    });
+
+    const equalsBin = (b1, b2) => {
+      if (b1 == b2) {
+        return true;
+      }
+      if (!b1 || !b2) {
+        return false;
+      }
+      if (typeof (b1) != typeof (b2)) {
+        return false;
+      }
+      if (b1.length != b2.length) {
+        return false;
+      }
+      for (let i = 0; i < b1.length; i++) {
+        if (b1[i] != b2[i]) {
+          return false;
+        }
+      }
+      return true;
+    };
+  </script>
+
+</body>
+
+</html>

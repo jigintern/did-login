@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DID Login Sample</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+</head>
+
+<body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title has-text-centered">DID Login Sample</h1>
+      <h3 class="subtitle has-text-centered">新規登録</h3>
+      <form id="form">
+
+        <div class="container mb-4">
+          <p id="error" class="has-text-danger"></p>
+        </div>
+
+        <div class="field">
+          <label class="label">名前</label>
+          <div class="control">
+            <input class="input" type="text" id="name" placeholder="名前を入力してください">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">DID</label>
+          <div class="control">
+            <input class="input" type="text" id="did" placeholder="DID" disabled>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">パスワード</label>
+          <div class="control">
+            <input class="input" type="text" id="password" placeholder="パスワード" disabled>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">電子署名</label>
+          <div class="control">
+            <textarea class="textarea" id="sign" placeholder="Signature" disabled></textarea>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">message</label>
+          <div class="control">
+            <input class="input" type="text" id="message" placeholder="message" disabled>
+          </div>
+        </div>
+
+        <div class="field is-grouped">
+          <div class="control">
+            <button class="button is-link" id="submit">登録</button>
+          </div>
+          <div class="control">
+            <button class="button is-primary" id="saveBtn">DIDとパスワードを保存</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <script type="module">
+    import Ed25519 from "https://taisukef.github.io/forge-es/lib/ed25519.js";
+    import { DIDKey } from "https://code4fukui.github.io/Ed25519/DIDKey.js";
+    import { PEMFile } from "https://code4fukui.github.io/Ed25519/PEMFile.js";
+    import { Text } from "https://code4fukui.github.io/Ed25519/Text.js";
+    import { bincat } from "https://js.sabae.cc/binutil.js";
+    import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
+
+    const keys = Ed25519.generateKeyPair();
+    const did = DIDKey.encodePublicKey(keys.publicKey);
+    const password = DIDKey.encodePrivateKey(keys.privateKey);
+
+    document.getElementById('did').value = did;
+    document.getElementById('password').value = password;
+
+    // nameの入力をmessageに反映させる
+    document.getElementById('name').addEventListener('input', (event) => {
+      const name = event.target.value;
+      document.getElementById('message').value = `{api: '/signup', name: ${name}}`;
+    });
+
+    // 送信時の処理
+    document.getElementById('submit').onclick = async () => {
+      event.preventDefault();
+
+      // 名前が入力されていなければエラー
+      const name = document.getElementById('name').value;
+      if (name === '') {
+        document.getElementById('error').innerText = '名前は必須パラメータです';
+      }
+
+      // 鍵の取得
+      const publicKey = DIDKey.decode(did).data;
+      const privateKey = bincat(DIDKey.decode(password).data, publicKey);
+
+      // messageから電子署名を生成
+      const message = document.getElementById('message').value;
+      const encodedMsg = Text.encode(message);
+      const messageSig = Ed25519.sign({ privateKey: privateKey, message: encodedMsg, encoding: "binary" });
+      const sign = DIDKey.encode(publicKey) + '-' + DIDKey.encodeSign(messageSig);
+      document.getElementById('sign').value = sign;
+
+      // 公開鍵・名前・電子署名をサーバーに渡す
+      try {
+        const resp = await fetch("/users/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            did,
+            sign,
+            message,
+          }),
+        });
+
+        // サーバーから成功ステータスが返ってこないときの処理
+        if (!resp.ok) {
+          const errMsg = await resp.text();
+          document.getElementById('error').innerText = 'エラー：' + errMsg;
+        }
+
+        // レスポンスが正常ならローカルストレージに保存
+        localStorage.setItem('did', did);
+        localStorage.setItem('password', password);
+        localStorage.setItem('name', name);
+      } catch (err) {
+        document.getElementById('error').innerText = err.message;
+      }
+    };
+
+    // DIDとパスワードの保存処理
+    document.getElementById('saveBtn').onclick = async () => {
+      // 鍵の取得
+      const publicKey = DIDKey.decode(did).data;
+      const privateKey = bincat(DIDKey.decode(password).data, publicKey);
+
+      const keys = { publicKey, privateKey }
+      const pem = PEMFile.encode(keys);
+      await downloadFile("key.secret.pem", new TextEncoder().encode(pem));
+    }
+  </script>
+
+</body>
+
+</html>
