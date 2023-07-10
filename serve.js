@@ -1,6 +1,6 @@
 import { serveDir } from "https://deno.land/std@0.180.0/http/file_server.ts";
 import { serve } from "https://deno.land/std@0.180.0/http/server.ts";
-import { DIDAuth } from "https://nabe1005.github.io/did-login/auth/DIDAuth.js";
+import { DIDAuth } from "https://jigintern.github.io/did-login/auth/DIDAuth.js";
 
 const users = [
   {
