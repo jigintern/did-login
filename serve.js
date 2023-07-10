@@ -21,15 +21,13 @@ serve(async (req) => {
     const did = json.did;
     const message = json.message;
 
-    let chk = false;
     try {
-      chk = DIDAuth.validSign(did, sign, message);
+      const chk = DIDAuth.validSign(did, sign, message);
+      if (!chk) {
+        return new Response("不正な電子署名です", { status: 400 })
+      }
     } catch (e) {
       return new Response(e.message, { status: 400 });
-    }
-
-    if (!chk) {
-      return new Response("不正な電子署名です", { status: 400 })
     }
 
     const isExists = users.some(e => e.name === userName);
@@ -49,15 +47,13 @@ serve(async (req) => {
     const did = json.did;
     const message = json.message;
 
-    let chk = false;
     try {
-      chk = DIDAuth.validSign(did, sign, message);
+      const chk = DIDAuth.validSign(did, sign, message);
+      if (!chk) {
+        return new Response("不正な電子署名です", { status: 400 })
+      }
     } catch (e) {
       return new Response(e.message, { status: 400 });
-    }
-
-    if (!chk) {
-      return new Response("不正な電子署名です", { status: 400 })
     }
 
     const user = users.find(e => e.did === did);
