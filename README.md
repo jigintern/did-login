@@ -1,6 +1,6 @@
 ### サンプルページはこちら
 
-https://small-cod-12.deno.dev
+https://did-login.deno.dev
 
 ## DID Login Sample
 
