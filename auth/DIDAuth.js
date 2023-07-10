@@ -40,7 +40,7 @@ export class DIDAuth {
     const msgSig = Ed25519.sign({ privateKey: keys.privateKey, message: encodeMsg, encoding: "binary" });
     const sign = DIDKey.encode(keys.publicKey) + '-' + DIDKey.encodeSign(msgSig);
 
-    return { name, did, password, message, sign };
+    return [did, password, message, sign];
   }
 
   /**
