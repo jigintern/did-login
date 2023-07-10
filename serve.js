@@ -1,8 +1,6 @@
-import { DIDKey } from "https://code4fukui.github.io/Ed25519/DIDKey.js";
-import { Text } from "https://code4fukui.github.io/Ed25519/Text.js";
 import { serveDir } from "https://deno.land/std@0.180.0/http/file_server.ts";
 import { serve } from "https://deno.land/std@0.180.0/http/server.ts";
-import Ed25519 from "https://taisukef.github.io/forge-es/lib/ed25519.js";
+import { DIDAuth } from "https://nabe1005.github.io/did-login/auth/DIDAuth.js";
 
 const users = [
   {
@@ -22,35 +20,19 @@ serve(async (req) => {
   if (req.method === "POST" && pathname === "/users/register") {
     const json = await req.json();
     const userName = json.name;
-    const signData = json.sign;
+    const sign = json.sign;
     const did = json.did;
     const message = json.message;
 
-    console.log(message);
-
-    // didから公開鍵を取得
-    let publicKeySet = null;
-    if (did.length > 0) {
-      try {
-        publicKeySet = DIDKey.decode(did).data || "key";
-      } catch (e) {
-        return new Response("不正なDIDです" + e.message, { status: 400 });
-      }
+    let chk = false;
+    try {
+      chk = DIDAuth.validSign(did, sign, message);
+    } catch (e) {
+      return new Response(e.message, { status: 400 });
     }
 
-    // 公開鍵の一致検証
-    const [rawPublicKey, rawSign] = signData.split('-');
-    const publicKey = DIDKey.decode(rawPublicKey).data;
-    if (publicKeySet && !equalsBin(publicKey, publicKeySet)) {
-      return new Response("公開鍵が一致しません", { status: 400 });
-    }
-
-    // 電子署名の検証
-    const encodedMsg = Text.encode(message);
-    const sign = DIDKey.decode(rawSign).data;
-    const chk = Ed25519.verify({ signature: sign, publicKey, message: encodedMsg, encoding: "binary" });
     if (!chk) {
-      return new Response("電子署名が正しくありません", { status: 400 });
+      return new Response("不正な電子署名です", { status: 400 })
     }
 
     const isExists = users.some(e => e.name === userName);
@@ -65,35 +47,19 @@ serve(async (req) => {
 
   if (req.method === "POST" && pathname === "/users/login") {
     const json = await req.json();
-    const signData = json.sign;
+    const sign = json.sign;
     const did = json.did;
     const message = json.message;
 
-    console.log(message);
-
-    // didから公開鍵を取得
-    let publicKeySet = null;
-    if (did.length > 0) {
-      try {
-        publicKeySet = DIDKey.decode(did).data || "key";
-      } catch (e) {
-        return new Response("不正なDIDです" + e.message, { status: 400 });
-      }
+    let chk = false;
+    try {
+      chk = DIDAuth.validSign(did, sign, message);
+    } catch (e) {
+      return new Response(e.message, { status: 400 });
     }
 
-    // 公開鍵の一致検証
-    const [rawPublicKey, rawSign] = signData.split('-');
-    const publicKey = DIDKey.decode(rawPublicKey).data;
-    if (publicKeySet && !equalsBin(publicKey, publicKeySet)) {
-      return new Response("公開鍵が一致しません", { status: 400 });
-    }
-
-    // 電子署名の検証
-    const encodedMsg = Text.encode(message);
-    const sign = DIDKey.decode(rawSign).data;
-    const chk = Ed25519.verify({ signature: sign, publicKey, message: encodedMsg, encoding: "binary" });
     if (!chk) {
-      return new Response("電子署名が正しくありません", { status: 400 });
+      return new Response("不正な電子署名です", { status: 400 })
     }
 
     const user = users.find(e => e.did === did);
@@ -143,24 +109,3 @@ serve(async (req) => {
     enableCors: true,
   });
 });
-
-const equalsBin = (b1, b2) => {
-  if (b1 == b2) {
-    return true;
-  }
-  if (!b1 || !b2) {
-    return false;
-  }
-  if (typeof (b1) != typeof (b2)) {
-    return false;
-  }
-  if (b1.length != b2.length) {
-    return false;
-  }
-  for (let i = 0; i < b1.length; i++) {
-    if (b1[i] != b2[i]) {
-      return false;
-    }
-  }
-  return true;
-};
