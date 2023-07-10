@@ -13,14 +13,14 @@ export class DIDAuth {
   /**
    * 新しいユーザーを作成します
    * 
-   * @param {String} name - ユーザーの名前(必須)
+   * @param {string} name - ユーザーの名前(必須)
    * @param {Object} options - ユーザーの追加情報はこちらに指定する
-   * @return {Object} 
-   * @return {String} return.name - ユーザー名
-   * @return {String} return did - DID
-   * @return {String} retrun.password - パスワード
-   * @return {String} return.message - API通信用メッセージ
-   * @return {String} return.sign - 電子署名
+   * @return {Object} user
+   * @return {string} user.name - ユーザー名
+   * @return {string} user.did - DID
+   * @return {string} user.password - パスワード
+   * @return {string} user.message - API通信用メッセージ
+   * @return {string} user.sign - 電子署名
    *  
    */
   static createNewUser(name, options = {}) {
@@ -46,8 +46,8 @@ export class DIDAuth {
   /**
    * didとpasswordをpemファイルとして保存する
    * 
-   * @param {String} did 
-   * @param {String} password 
+   * @param {string} did 
+   * @param {string} password 
    */
   static async savePem(did, password) {
     // 鍵の取得
@@ -59,10 +59,11 @@ export class DIDAuth {
     await downloadFile("key.secret.pem", new TextEncoder().encode(pem));
   }
 
+
   /**
-   * pemファイルからDIDとパスワードを取得する
+   * 
    * @param {File} pemFile 
-   * @return {Object} keys - 
+   * @returns {[string, string]} DID, password
    */
   static async getDIDAndPasswordFromPem(pemFile) {
     // 公開鍵・秘密鍵を取り出す
@@ -75,16 +76,18 @@ export class DIDAuth {
       throw new Error('throw new Error("Unable to extract valid keys from the provided PEM file. Please verify the file.');
     }
 
-    return keys;
+    const did = DIDKey.encodePublicKey(keys.publicKey);
+    const password = DIDKey.encodePrivateKey(keys.privateKey);
+    return [did, password];
   }
 
   /**
    * 電子署名が正しいか確認する  
    * 正しければtrue、正しくなければfalse
-   * @param {String} did 
-   * @param {String} sign 
-   * @param {String} message
-   * @return {Boolean} chk
+   * @param {string} did 
+   * @param {string} sign 
+   * @param {string} message
+   * @return {Boolean} result
    */
   static validSign(did, sign, message) {
     // didから公開鍵を取得
@@ -109,6 +112,29 @@ export class DIDAuth {
     const signData = DIDKey.decode(rawSign).data;
     const chk = Ed25519.verify({ signature: signData, publicKey, message: encodedMsg, encoding: "binary" });
     return chk;
+  }
+
+  /**
+   * メッセージと電子署名を生成する
+   * @param {string} did 
+   * @param {string} password 
+   * @param {string} path 
+   * @param {string} method 
+   * @param {Object} params 
+   * @returns {[string, string]} message, sign
+   */
+  static genMsgAndSign(did, password, path, method, params = {}) {
+    // 鍵の取得
+    const publicKey = DIDKey.decode(did).data;
+    const privateKey = bincat(DIDKey.decode(password).data, publicKey);
+
+    // メッセージと電子署名を作成
+    const message = JSON.stringify(path, method, params);
+    const encodeMsg = Text.encode(message);
+    const messageSig = Ed25519.sign({ privateKey, message: encodeMsg, encoding: "binary" });
+    const sign = DIDKey.encode(publicKey) + '-' + DIDKey.encodeSign(messageSig);
+
+    return [message, sign];
   }
 }
 
