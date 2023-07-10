@@ -13,7 +13,8 @@ export class DIDAuth {
   /**
    * 新しいユーザーを作成します
    * 
-   * @param {String} options.name - ユーザーの名前(必須)
+   * @param {String} name - ユーザーの名前(必須)
+   * @param {Object} options - ユーザーの追加情報はこちらに指定する
    * @return {Object} 
    * @return {String} return.name - ユーザー名
    * @return {String} return did - DID
@@ -22,10 +23,10 @@ export class DIDAuth {
    * @return {String} return.sign - 電子署名
    *  
    */
-  static createNewUser({ options }) {
+  static createNewUser(name, options = {}) {
     // 名前が指定されてなければエラー
-    if (options.name === undefined) {
-      throw new Error('options.name is requried parameter');
+    if (!name) {
+      throw new Error('name is requried parameter');
     }
 
     // 鍵・DID・パスワードの生成
