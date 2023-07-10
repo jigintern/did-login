@@ -38,7 +38,7 @@ export class DIDAuth {
     const message = '{method: createNewUser, name: ' + options.name + '}';
     const encodeMsg = Text.encode(message);
     const msgSig = Ed25519.sign({ privateKey: keys.privateKey, message: encodeMsg, encoding: "binary" });
-    const sign = DIDKey.encode(publicKey) + '-' + DIDKey.encodeSign(msgSig);
+    const sign = DIDKey.encode(keys.publicKey) + '-' + DIDKey.encodeSign(msgSig);
 
     return { name, did, password, message, sign };
   }
