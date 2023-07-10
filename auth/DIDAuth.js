@@ -35,7 +35,7 @@ export class DIDAuth {
     const password = DIDKey.encodePrivateKey(keys.privateKey);
 
     // メッセージと電子署名を作る
-    const message = '{method: createNewUser, name: ' + name + ', options: ' + options + '}';
+    const message = '{method: createNewUser, name: ' + name + ', options: ' + JSON.stringify(options) + '}';
     const encodeMsg = Text.encode(message);
     const msgSig = Ed25519.sign({ privateKey: keys.privateKey, message: encodeMsg, encoding: "binary" });
     const sign = DIDKey.encode(keys.publicKey) + '-' + DIDKey.encodeSign(msgSig);
