@@ -67,25 +67,8 @@
   </section>
 
   <script type="module">
-    import Ed25519 from "https://taisukef.github.io/forge-es/lib/ed25519.js";
-    import { DIDKey } from "https://code4fukui.github.io/Ed25519/DIDKey.js";
-    import { PEMFile } from "https://code4fukui.github.io/Ed25519/PEMFile.js";
-    import { Text } from "https://code4fukui.github.io/Ed25519/Text.js";
-    import { bincat } from "https://js.sabae.cc/binutil.js";
     import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
-
-    const keys = Ed25519.generateKeyPair();
-    const did = DIDKey.encodePublicKey(keys.publicKey);
-    const password = DIDKey.encodePrivateKey(keys.privateKey);
-
-    document.getElementById('did').value = did;
-    document.getElementById('password').value = password;
-
-    // nameの入力をmessageに反映させる
-    document.getElementById('name').addEventListener('input', (event) => {
-      const name = event.target.value;
-      document.getElementById('message').value = `{api: '/signup', name: ${name}}`;
-    });
+    import { DIDAuth } from "https://nabe1005.github.io/did-login/auth/DIDAuth.js";
 
     // 送信時の処理
     document.getElementById('submit').onclick = async () => {
@@ -97,16 +80,14 @@
         document.getElementById('error').innerText = '名前は必須パラメータです';
       }
 
-      // 鍵の取得
-      const publicKey = DIDKey.decode(did).data;
-      const privateKey = bincat(DIDKey.decode(password).data, publicKey);
+      // 新規ユーザー作成
+      const [did, password, message, sign] = DIDAuth.createNewUser(name);
 
-      // messageから電子署名を生成
-      const message = document.getElementById('message').value;
-      const encodedMsg = Text.encode(message);
-      const messageSig = Ed25519.sign({ privateKey: privateKey, message: encodedMsg, encoding: "binary" });
-      const sign = DIDKey.encode(publicKey) + '-' + DIDKey.encodeSign(messageSig);
+      // Formに反映させる
+      document.getElementById('did').value = did;
+      document.getElementById('password').value = password;
       document.getElementById('sign').value = sign;
+      document.getElementById('message').value = message;
 
       // 公開鍵・名前・電子署名をサーバーに渡す
       try {
@@ -138,13 +119,9 @@
 
     // DIDとパスワードの保存処理
     document.getElementById('saveBtn').onclick = async () => {
-      // 鍵の取得
-      const publicKey = DIDKey.decode(did).data;
-      const privateKey = bincat(DIDKey.decode(password).data, publicKey);
-
-      const keys = { publicKey, privateKey }
-      const pem = PEMFile.encode(keys);
-      await downloadFile("key.secret.pem", new TextEncoder().encode(pem));
+      const did = document.getElementById('did').value;
+      const password = document.getElementById('password').value;
+      DIDAuth.savePem(did, password);
     }
   </script>
 
