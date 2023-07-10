@@ -63,7 +63,7 @@ DIDとメッセージを使用して、電子署名(sign)の検証をするメ�
 
 ```js
 try {
-  const chk = DIDAuth.validSign(did, sign, message);
+  const chk = DIDAuth.verifySign(did, sign, message);
   if (!chk) {
     return new Response("不正な電子署名です", { status: 400 })
   }

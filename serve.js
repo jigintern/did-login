@@ -22,7 +22,7 @@ serve(async (req) => {
     const message = json.message;
 
     try {
-      const chk = DIDAuth.validSign(did, sign, message);
+      const chk = DIDAuth.verifySign(did, sign, message);
       if (!chk) {
         return new Response("不正な電子署名です", { status: 400 })
       }
@@ -48,7 +48,7 @@ serve(async (req) => {
     const message = json.message;
 
     try {
-      const chk = DIDAuth.validSign(did, sign, message);
+      const chk = DIDAuth.verifySign(did, sign, message);
       if (!chk) {
         return new Response("不正な電子署名です", { status: 400 })
       }

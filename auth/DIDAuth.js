@@ -16,7 +16,6 @@ export class DIDAuth {
    * @param {string} name - ユーザーの名前(必須)
    * @param {Object} options - ユーザーの追加情報はこちらに指定する
    * @return {Object} user
-   * @return {string} user.name - ユーザー名
    * @return {string} user.did - DID
    * @return {string} user.password - パスワード
    * @return {string} user.message - API通信用メッセージ
@@ -26,7 +25,7 @@ export class DIDAuth {
   static createNewUser(name, options = {}) {
     // 名前が指定されてなければエラー
     if (!name) {
-      throw new Error('name is requried parameter');
+      throw new Error('name is required parameter');
     }
 
     // 鍵・DID・パスワードの生成
@@ -89,7 +88,7 @@ export class DIDAuth {
    * @param {string} message
    * @return {Boolean} result
    */
-  static validSign(did, sign, message) {
+  static verifySign(did, sign, message) {
     // didから公開鍵を取得
     let publicKeySet = null;
     if (did.length > 0) {
@@ -101,15 +100,15 @@ export class DIDAuth {
     }
 
     // 公開鍵の一致検証
-    const [rawPublicKey, rawSign] = sign.split('-');
-    const publicKey = DIDKey.decode(rawPublicKey).data;
+    const [publicKeySign, msgSign] = sign.split('-');
+    const publicKey = DIDKey.decode(publicKeySign).data;
     if (publicKeySet && !equalsBin(publicKey, publicKeySet)) {
       return new Error("公開鍵が一致しません");
     }
 
     // 電子署名の検証
     const encodedMsg = Text.encode(message);
-    const signData = DIDKey.decode(rawSign).data;
+    const signData = DIDKey.decode(msgSign).data;
     const chk = Ed25519.verify({ signature: signData, publicKey, message: encodedMsg, encoding: "binary" });
     return chk;
   }
