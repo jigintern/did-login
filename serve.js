@@ -1,13 +1,7 @@
 import { serveDir } from "https://deno.land/std@0.180.0/http/file_server.ts";
 import { serve } from "https://deno.land/std@0.180.0/http/server.ts";
 import { DIDAuth } from "https://jigintern.github.io/did-login/auth/DIDAuth.js";
-
-const users = [
-  {
-    did: "did:key:z6MkpLMhzfdm9z7fe4tasU9DooqdYH52YNtdz3QF1zuYizmz",
-    name: "nabe"
-  }
-];
+import { addDID, checkIfIdExists, getUser } from "./db-controller.js";
 
 serve(async (req) => {
   const pathname = new URL(req.url).pathname;
@@ -21,23 +15,33 @@ serve(async (req) => {
     const did = json.did;
     const message = json.message;
 
+    // 電子署名が正しいかチェック
     try {
       const chk = DIDAuth.verifySign(did, sign, message);
       if (!chk) {
-        return new Response("不正な電子署名です", { status: 400 })
+        return new Response("不正な電子署名です", { status: 400 });
       }
     } catch (e) {
       return new Response(e.message, { status: 400 });
     }
 
-    const isExists = users.some(e => e.name === userName);
-    if (isExists) {
-      return new Response("登録済みです", { status: 400 });
+    // 既にDBにdidが登録されているかチェック
+    try {
+      const isExists = await checkIfIdExists(did);
+      if (isExists) {
+        return Response("登録済みです", { status: 400 });
+      }
+    } catch (e) {
+      return new Response(e.message, { status: 500 });
     }
 
-    users.push({ did, name: userName });
-    console.dir(users);
-    return new Response("ok");
+    // DBにdidとuserNameを登録
+    try {
+      await addDID(did, userName);
+      return new Response("ok");
+    } catch (e) {
+      return new Response(e.message, { status: 500 });
+    }
   }
 
   // ユーザーログインAPI
@@ -47,23 +51,31 @@ serve(async (req) => {
     const did = json.did;
     const message = json.message;
 
+    // 電子署名が正しいかチェック
     try {
       const chk = DIDAuth.verifySign(did, sign, message);
       if (!chk) {
-        return new Response("不正な電子署名です", { status: 400 })
+        return new Response("不正な電子署名です", { status: 400 });
       }
     } catch (e) {
       return new Response(e.message, { status: 400 });
     }
 
-    const user = users.find(e => e.did === did);
-    if (!user) {
-      return new Response("登録されていません", { status: 400 });
+    // DBにdidが登録されているかチェック
+    try {
+      const isExists = await checkIfIdExists(did);
+      if (!isExists) {
+        return new Response("登録されていません", { status: 400 });
+      }
+      // 登録済みであればuser情報を返す
+      const res = await getUser(did);
+      const user = { did: res.rows[0].did, name: res.rows[0].name };
+      return new Response(JSON.stringify({ user }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      return new Response(e.message, { status: 500 });
     }
-
-    return new Response(JSON.stringify({ user }), {
-      headers: { "Content-Type": "application/json" },
-    });
   }
 
   return serveDir(req, {
