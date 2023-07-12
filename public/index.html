@@ -147,6 +147,7 @@
           if (!resp.ok) {
             const errMsg = await resp.text();
             document.getElementById("error").innerText = "エラー：" + errMsg;
+            return;
           }
 
           // レスポンスが正常ならローカルストレージに保存

@@ -35,7 +35,7 @@ serve(async (req) => {
       return new Response(e.message, { status: 500 });
     }
 
-    // DBにdidとuserNameを登録
+    // DBにdidとuserNameを保存
     try {
       await addDID(did, userName);
       return new Response("ok");
