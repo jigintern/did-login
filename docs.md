@@ -95,7 +95,7 @@ import Ed25519 from "https://taisukef.github.io/forge-es/lib/ed25519.js";
 import { DIDKey } from "https://code4fukui.github.io/Ed25519/DIDKey.js";
 import { Text } from "https://code4fukui.github.io/Ed25519/Text.js";
 
-// didから公開鍵を取得
+// DIDから公開鍵を取得
 let publicKeySet = null;
 if (did.length > 0) {
   try {
@@ -145,7 +145,7 @@ const chk = Ed25519.verify({
 今回はユーザーにハンドルネーム(name)を入力してもらう程で進めます。
 
 ```js
-// `DIDAuth` モジュールの `createNewUser` を使って did、パスワード、メッセージ、電子署名を取得します。
+// `DIDAuth` モジュールの `createNewUser` を使って DID、パスワード、メッセージ、電子署名を取得します。
 const [did, password, message, sign] = DIDAuth.createNewUser(name);
 // 公開鍵・名前・電子署名をサーバーに渡す
 try {
@@ -199,7 +199,7 @@ if (req.method === "POST" && pathname === "/users/register") {
     return new Response(e.message, { status: 400 });
   }
 
-  // 既にDBにdidが登録されているかチェック
+  // 既にDBにDIDが登録されているかチェック
   try {
     const isExists = await checkIfIdExists(did);
     if (isExists) {
@@ -209,7 +209,7 @@ if (req.method === "POST" && pathname === "/users/register") {
     return new Response(e.message, { status: 500 });
   }
 
-  // DBにdidとuserNameを保存
+  // DBにDIDとuserNameを保存
   try {
     await addDID(did, userName);
     return new Response("ok");
@@ -225,7 +225,7 @@ if (req.method === "POST" && pathname === "/users/register") {
 import { Client } from "https://deno.land/x/mysql@v2.11.0/mod.ts";
 import "https://deno.land/std@0.192.0/dotenv/load.ts";
 
-// sqlの設定
+// SQLの設定
 const connectionParam = {
   hostname: Deno.env.get("HOST_NAME"),
   username: Deno.env.get("SQL_USER"),
@@ -238,7 +238,7 @@ const connectionParam = {
 const client = await new Client().connect(connectionParam);
 
 export async function checkIfIdExists(did) {
-  // DBに電子署名があるか
+  // DBにDIDがあるか
   const res = await client.execute(
     `select count(*) from users where did = "${did}";`
   );
@@ -341,7 +341,7 @@ if (req.method === "POST" && pathname === "/users/login") {
     return new Response(e.message, { status: 400 });
   }
 
-  // DBにdidが登録されているかチェック
+  // DBにDIDが登録されているかチェック
   try {
     const isExists = await checkIfIdExists(did);
     if (!isExists) {
@@ -364,7 +364,7 @@ if (req.method === "POST" && pathname === "/users/login") {
 ```js
 // 以下のコードを追加
 export async function getUser(did) {
-  // DBからsignatureが一致するレコードを取得
+  // DBからDIDが一致するレコードを取得
   const res = await client.execute(`select * from users where did = "${did}";`);
   return res;
 }

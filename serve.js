@@ -1,7 +1,7 @@
 import { serveDir } from "https://deno.land/std@0.180.0/http/file_server.ts";
 import { serve } from "https://deno.land/std@0.180.0/http/server.ts";
 import { DIDAuth } from "https://jigintern.github.io/did-login/auth/DIDAuth.js";
-import { addDID, checkIfIdExists, getUser } from "./db-controller.js";
+import { addDID, checkDIDExists, getUser } from "./db-controller.js";
 
 serve(async (req) => {
   const pathname = new URL(req.url).pathname;
@@ -25,17 +25,17 @@ serve(async (req) => {
       return new Response(e.message, { status: 400 });
     }
 
-    // 既にDBにdidが登録されているかチェック
+    // 既にDBにDIDが登録されているかチェック
     try {
-      const isExists = await checkIfIdExists(did);
+      const isExists = await checkDIDExists(did);
       if (isExists) {
-        return Response("登録済みです", { status: 400 });
+        return new Response("登録済みです", { status: 400 });
       }
     } catch (e) {
       return new Response(e.message, { status: 500 });
     }
 
-    // DBにdidとuserNameを保存
+    // DBにDIDとuserNameを保存
     try {
       await addDID(did, userName);
       return new Response("ok");
@@ -61,9 +61,9 @@ serve(async (req) => {
       return new Response(e.message, { status: 400 });
     }
 
-    // DBにdidが登録されているかチェック
+    // DBにDIDが登録されているかチェック
     try {
-      const isExists = await checkIfIdExists(did);
+      const isExists = await checkDIDExists(did);
       if (!isExists) {
         return new Response("登録されていません", { status: 400 });
       }
