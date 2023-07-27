@@ -22,7 +22,8 @@ const client = await new Client().connect(connectionParam);
 export async function checkDIDExists(did) {
   // DBに電子署名があるか
   const res = await client.execute(
-    `select count(*) from users where did = "${did}";`
+    `select count(*) from users where did = ?;`,
+    [did]
   );
   // レスポンスのObjectから任意のDIDと保存されているDIDが一致している数を取得し
   // その数が1かどうかを返す
@@ -37,9 +38,10 @@ export async function checkDIDExists(did) {
  */
 export async function addDID(did, userName) {
   // DBにデータを追加
-  await client.execute(
-    `insert into users (did, name) values ("${did}", "${userName}");`
-  );
+  await client.execute(`insert into users (did, name) values (?, ?);`, [
+    did,
+    userName,
+  ]);
 }
 
 /**
@@ -49,6 +51,6 @@ export async function addDID(did, userName) {
  */
 export async function getUser(did) {
   // DBからDIDが一致するレコードを取得
-  const res = await client.execute(`select * from users where did = "${did}";`);
+  const res = await client.execute(`select * from users where did = ?;`, [did]);
   return res;
 }
