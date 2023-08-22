@@ -82,8 +82,18 @@ API用メッセージと電子署名を生成するメソッドです。
 pathとmethodはAPIのもの  
 paramsにはDID、メッセージ、電子署名以外に必要なパラメータがあれば指定してください。
 
+paramsなし
+
 ```js
 const path = '/users/login';
 const method = 'POST';
+const [message, sign] = DIDAuth.genMsgAndSign(did, password, path, method);
+```
+
+paramsあり
+```js
+const path = '/tweet';
+const method = 'POST';
+const params = { content: 'test', category: 'hoge' };
 const [message, sign] = DIDAuth.genMsgAndSign(did, password, path, method);
 ```
