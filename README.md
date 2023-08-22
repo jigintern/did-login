@@ -95,5 +95,5 @@ paramsあり
 const path = '/tweet';
 const method = 'POST';
 const params = { content: 'test', category: 'hoge' };
-const [message, sign] = DIDAuth.genMsgAndSign(did, password, path, method);
+const [message, sign] = DIDAuth.genMsgAndSign(did, password, path, method, params);
 ```
